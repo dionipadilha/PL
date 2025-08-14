@@ -1,32 +1,7 @@
 import numpy as np
 from scipy.optimize import linprog
-
-# --- Configurações e Parâmetros do Problema ---
-
-# Coeficientes da função objetivo (para minimização)
-# Queremos maximizar Z = 5*xA + 8*xB
-# Para minimizar, usamos -Z = -5*xA - 8*xB
-OBJECTIVE_COEFFS = np.array([-5, -8])
-
-# Coeficientes das restrições de desigualdade (Ax <= b)
-# Restrição 1: 2*xA + 3*xB <= 100
-# Restrição 2: 4*xA + 2*xB <= 80
-INEQUALITY_CONSTRAINT_MATRIX = np.array([
-    [2, 3],  # Coeficientes para xA e xB na primeira restrição
-    [4, 2]   # Coeficientes para xA e xB na segunda restrição
-])
-
-# Limites do lado direito das restrições de desigualdade
-INEQUALITY_CONSTRAINT_BOUNDS = np.array([100, 80])
-
-# Coeficientes das restrições de igualdade (Ax = b) - Não temos nenhuma neste exemplo
-EQUALITY_CONSTRAINT_MATRIX = None
-EQUALITY_CONSTRAINT_BOUNDS = None
-
-# Limites para as variáveis de decisão (xA >= 0, xB >= 0)
-# Cada tupla é (limite_inferior, limite_superior) para cada variável.
-# None significa que não há limite (infinito).
-DECISION_VARIABLE_BOUNDS = [(0, None), (0, None)]
+import json
+import argparse
 
 # --- Funções ---
 
@@ -52,7 +27,7 @@ def solve_linear_programming(c, A_ub, b_ub, A_eq, b_eq, bounds):
     print("Solução concluída.")
     return result
 
-def display_lp_results(result, variable_names=["Produção Produto A", "Produção Produto B"]):
+def display_lp_results(result, variable_names):
     """
     Exibe os resultados de um problema de Programação Linear de forma legível.
 
@@ -77,23 +52,56 @@ def display_lp_results(result, variable_names=["Produção Produto A", "Produç�
 
 # --- Lógica Principal de Execução ---
 
+def load_problem_from_json(file_path):
+    """
+    Carrega a definição do problema de um arquivo JSON.
+    """
+    with open(file_path, 'r') as f:
+        problem = json.load(f)
+
+    # Converte listas para tuplas nos limites das variáveis
+    problem['decision_variable_bounds'] = [
+        tuple(bounds) for bounds in problem['decision_variable_bounds']
+    ]
+    return problem
+
 def main():
     """
     Define o problema de LP e executa a solução e exibição dos resultados.
     """
+    # Configura o parser de argumentos
+    parser = argparse.ArgumentParser(description='Resolve um problema de Programação Linear a partir de um arquivo JSON.')
+    parser.add_argument(
+        '-f', '--file',
+        default='problem.json',
+        help='Caminho para o arquivo JSON com a definição do problema.'
+    )
+    args = parser.parse_args()
+
+    # Carrega o problema do arquivo JSON
+    try:
+        problem = load_problem_from_json(args.file)
+    except FileNotFoundError:
+        print(f"Erro: O arquivo '{args.file}' não foi encontrado.")
+        return
+    except json.JSONDecodeError:
+        print(f"Erro: O arquivo '{args.file}' não é um JSON válido.")
+        return
+
     # Configura o problema
-    c = OBJECTIVE_COEFFS
-    A_ub = INEQUALITY_CONSTRAINT_MATRIX
-    b_ub = INEQUALITY_CONSTRAINT_BOUNDS
-    A_eq = EQUALITY_CONSTRAINT_MATRIX
-    b_eq = EQUALITY_CONSTRAINT_BOUNDS
-    bounds = DECISION_VARIABLE_BOUNDS
+    c = np.array(problem['objective_coeffs'])
+    A_ub = np.array(problem['inequality_constraint_matrix'])
+    b_ub = np.array(problem['inequality_constraint_bounds'])
+    A_eq = np.array(problem['equality_constraint_matrix']) if problem['equality_constraint_matrix'] is not None else None
+    b_eq = np.array(problem['equality_constraint_bounds']) if problem['equality_constraint_bounds'] is not None else None
+    bounds = problem['decision_variable_bounds']
+    variable_names = problem['variable_names']
 
     # Resolve o problema de LP
     lp_result = solve_linear_programming(c, A_ub, b_ub, A_eq, b_eq, bounds)
 
     # Exibe os resultados
-    display_lp_results(lp_result)
+    display_lp_results(lp_result, variable_names)
 
 # --- Ponto de Entrada do Script ---
 
