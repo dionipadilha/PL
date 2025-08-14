@@ -1,0 +1,15 @@
+{
+  "objective_coeffs": [-5, -8],
+  "inequality_constraint_matrix": [
+    [2, 3],
+    [4, 2]
+  ],
+  "inequality_constraint_bounds": [100, 80],
+  "equality_constraint_matrix": null,
+  "equality_constraint_bounds": null,
+  "decision_variable_bounds": [
+    [0, null],
+    [0, null]
+  ],
+  "variable_names": ["Produção Produto A", "Produção Produto B"]
+}
